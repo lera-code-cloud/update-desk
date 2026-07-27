@@ -74,6 +74,7 @@ header { background: #1a1a1a; border-bottom: 0.5px solid #2e2e2e; padding: 18px 
 .stamp { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
 .stamp.updated { background: #c8b89a22; color: #c8b89a; border: 0.5px solid #c8b89a; }
 .stamp.unchanged { background: #2e2e2e; color: #9a8f85; border: 0.5px solid #3a3a3a; }
+.stamp.retry { background: #c8a86a22; color: #c8a86a; border: 0.5px solid #c8a86a; }
 </style>
 </head>
 <body>
@@ -168,6 +169,8 @@ ADDING NEW INFORMATION (only if the user supplied source material):
 
 Use web search to verify every checkable factual claim.
 
+IMPORTANT — DO NOT NARRATE: Do not write out your research process, findings list, or checklist progress as visible text at any point. Do all verification and reasoning silently between search calls. The only text you ever output is the final response in the exact format below — nothing before it, nothing after it, and nothing else in between search calls either.
+
 RESPONSE FORMAT — strict, nothing before or after these blocks:
 <<<HEADLINE>>>
 (the headline — updated only if truly necessary, otherwise identical to the input)
@@ -206,7 +209,23 @@ function plainText(html){
   return doc.body.textContent.trim();
 }
 
-async function callClaude(headlineHtml, bodyHtml, infoHtml){
+async function callClaudeOnce(messages){
+  const resp = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 16000,
+      system: activePrompt,
+      messages,
+      tools: [{ type: "web_search_20250305", name: "web_search" }]
+    })
+  });
+  if(!resp.ok){ throw new Error("API error: " + resp.status); }
+  return resp.json();
+}
+
+async function callClaude(headlineHtml, bodyHtml, infoHtml, onRetry){
   const today = new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
   let userMsg = `Today's date: ${today}\n\nHEADLINE:\n${headlineHtml}\n\nBODY HTML:\n${bodyHtml}`;
   const infoText = plainText(infoHtml || "");
@@ -214,28 +233,47 @@ async function callClaude(headlineHtml, bodyHtml, infoHtml){
     userMsg += `\n\nNEW INFORMATION TO WEAVE IN (link to this/these source(s) exactly once each):\n${infoHtml}`;
   }
 
-  const resp = await fetch("/api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8000,
-      system: activePrompt,
-      messages: [{ role: "user", content: userMsg }],
-      tools: [{ type: "web_search_20250305", name: "web_search" }]
-    })
-  });
-  if(!resp.ok){ throw new Error("API error: " + resp.status); }
-  const data = await resp.json();
-  return data.content.filter(b => b.type === "text").map(b => b.text).join("\n");
+  let messages = [{ role: "user", content: userMsg }];
+  let raw = "";
+  const MAX_ATTEMPTS = 3; // initial call + up to 2 auto-continuations if truncated
+
+  for(let attempt = 0; attempt < MAX_ATTEMPTS; attempt++){
+    const data = await callClaudeOnce(messages);
+    const textPart = data.content.filter(b => b.type === "text").map(b => b.text).join("\n");
+    raw += (raw ? "\n" : "") + textPart;
+
+    if(data.stop_reason !== "max_tokens"){
+      break; // model finished on its own — either success or some other stop condition
+    }
+    if(attempt === MAX_ATTEMPTS - 1){
+      break; // out of retries, fall through to the truncation check below
+    }
+
+    if(onRetry) onRetry(attempt + 1);
+
+    messages = [
+      ...messages,
+      { role: "assistant", content: textPart },
+      { role: "user", content: "Continue exactly from where you left off. Do not repeat anything already written, and do not restart the <<<HEADLINE>>> block." }
+    ];
+  }
+
+  if(!raw.includes("<<<END>>>")){
+    throw new Error("The response was cut off and couldn't be completed automatically. Please try again — if it keeps happening, try trimming very long articles.");
+  }
+
+  return raw;
 }
 
 function parseResponse(raw){
   const headlineMatch = raw.match(/<<<HEADLINE>>>([\s\S]*?)<<<BODY>>>/);
   const bodyMatch = raw.match(/<<<BODY>>>([\s\S]*?)<<<END>>>/);
+  if(!headlineMatch || !bodyMatch){
+    throw new Error("Couldn't find a properly formatted response from Claude. Please try again.");
+  }
   return {
-    headlineOut: headlineMatch ? headlineMatch[1].trim() : "",
-    bodyOut: bodyMatch ? bodyMatch[1].trim() : raw.trim()
+    headlineOut: headlineMatch[1].trim(),
+    bodyOut: bodyMatch[1].trim()
   };
 }
 
@@ -262,14 +300,16 @@ async function runUpdate(){
   setStatus("Checking facts against live search — this can take a minute…");
 
   try{
-    const raw = await callClaude(headlineHtml, bodyHtml, infoHtml);
+    const raw = await callClaude(headlineHtml, bodyHtml, infoHtml, (attemptNum) => {
+      setStatus(`Response was cut off — asking Claude to continue (attempt ${attemptNum})…`);
+    });
     const { headlineOut, bodyOut } = parseResponse(raw);
 
     const headlineChanged = plainText(headlineOut) !== plainText(headlineHtml);
     const stamp = document.getElementById('headlineStamp');
     stamp.textContent = headlineChanged ? "Updated" : "No change needed";
     stamp.className = "stamp " + (headlineChanged ? "updated" : "unchanged");
-    document.getElementById('headlineResult').innerHTML = headlineOut || headlineHtml;
+    document.getElementById('headlineResult').innerHTML = headlineOut;
 
     document.getElementById('resultContent').innerHTML = bodyOut;
 
