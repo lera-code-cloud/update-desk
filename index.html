@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Update Desk</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2032%2032%22%3E%3Crect%20width=%2232%22%20height=%2232%22%20rx=%228%22%20fill=%22%23e8e0d8%22/%3E%3Ctext%20x=%2216%22%20y=%2221.5%22%20text-anchor=%22middle%22%20font-family=%22-apple-system,BlinkMacSystemFont,Segoe%20UI,Helvetica,Arial,sans-serif%22%20font-size=%2213%22%20font-weight=%22700%22%20letter-spacing=%220.3%22%20fill=%22%23121212%22%3EUD%3C/text%3E%3C/svg%3E">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #121212; color: #e8e0d8; min-height: 100vh; }
@@ -75,6 +76,23 @@ header { background: #1a1a1a; border-bottom: 0.5px solid #2e2e2e; padding: 18px 
 .stamp.updated { background: #c8b89a22; color: #c8b89a; border: 0.5px solid #c8b89a; }
 .stamp.unchanged { background: #2e2e2e; color: #9a8f85; border: 0.5px solid #3a3a3a; }
 .stamp.retry { background: #c8a86a22; color: #c8a86a; border: 0.5px solid #c8a86a; }
+
+.header-right { display: flex; align-items: center; gap: 12px; }
+.locale-switch { display: flex; align-items: center; gap: 0; border: 0.5px solid #2e2e2e; border-radius: 10px; padding: 3px; background: rgba(18,18,18,0.4); }
+.loc-btn { background: none; border: none; font-family: inherit; font-size: 12px; letter-spacing: .03em; color: #6b6560; padding: 7px 15px; border-radius: 7px; cursor: pointer; transition: background .2s, color .2s; white-space: nowrap; }
+.loc-btn:hover { color: #9a8f85; }
+.loc-btn.active { background: rgba(200,184,154,0.14); color: #c8b89a; }
+.loc-btn:disabled { opacity: .4; cursor: not-allowed; }
+.locale-meta { font-size: 11px; color: #4a4540; letter-spacing: .02em; margin-top: 12px; }
+.locale-meta strong { color: #6b6560; font-weight: 500; }
+@media (max-width: 720px) {
+  header { padding: 14px 16px; flex-wrap: wrap; gap: 12px; }
+  .header-left .tagline { display: none; }
+  .header-right { width: 100%; justify-content: space-between; }
+  .loc-btn { padding: 7px 11px; }
+  .container { padding: 22px 14px 60px; }
+  .input-card, .result-card, .prompt-editor { padding: 20px 18px; }
+}
 </style>
 </head>
 <body>
@@ -85,14 +103,21 @@ header { background: #1a1a1a; border-bottom: 0.5px solid #2e2e2e; padding: 18px 
     <h1>update desk</h1>
     <span class="tagline">/ editorial fact-check</span>
   </div>
-  <button class="settings-btn" id="settingsToggle" onclick="toggleEditor()">Prompt editor</button>
+  <div class="header-right">
+    <div class="locale-switch" id="localeSwitch">
+      <button class="loc-btn" data-locale="us" onclick="setLocale('us')">USA</button>
+      <button class="loc-btn" data-locale="de" onclick="setLocale('de')">Germany</button>
+      <button class="loc-btn" data-locale="latam" onclick="setLocale('latam')">LatAm</button>
+    </div>
+    <button class="settings-btn" id="settingsToggle" onclick="toggleEditor()">Prompt editor</button>
+  </div>
 </header>
 
 <div class="container">
 
   <div class="prompt-editor" id="promptEditorWrap">
     <div class="editor-header">
-      <div class="editor-label">System prompt <span class="saved-badge" id="savedBadge">Saved for this session</span></div>
+      <div class="editor-label">System prompt · <span id="promptEditorLocale">USA</span> <span class="saved-badge" id="savedBadge">Saved for this session</span></div>
       <div class="editor-actions">
         <button class="pill-btn" onclick="resetPrompt()">Reset to default</button>
         <button class="pill-btn save" onclick="savePrompt()">Save</button>
@@ -120,6 +145,7 @@ header { background: #1a1a1a; border-bottom: 0.5px solid #2e2e2e; padding: 18px 
       <button class="gen-btn" id="runBtn" onclick="runUpdate()">Refresh article</button>
       <span id="status"></span>
     </div>
+    <div class="locale-meta" id="localeMeta"></div>
   </div>
 
   <div class="error-bar" id="errorBar"></div>
@@ -178,8 +204,91 @@ RESPONSE FORMAT — strict, nothing before or after these blocks:
 (the full updated HTML body)
 <<<END>>>`;
 
-let activePrompt = DEFAULT_PROMPT;
-document.getElementById('promptEditorArea').value = DEFAULT_PROMPT;
+/* ------------------------------------------------------------------
+   DESKS — the workflow is identical everywhere; only the language of
+   the article (and therefore of the research and of the output) differs.
+   The US prompt is byte-identical to DEFAULT_PROMPT above.
+------------------------------------------------------------------- */
+const PROMPT_ANCHOR = "STRICT RULES FOR THE BODY:";
+
+const DE_BLOCK = `DESK: GERMANY — the article is written in German.
+
+- The headline and the body are German. Everything you output stays German. Never translate the article, never switch to English, never leave an English sentence, phrase or connector inside the German copy.
+- Run your verification searches in German first, since German-language facts are usually only correct in German-language sources. Search in English as well whenever the subject is international and German coverage is thin, then write the confirmed fact back in German.
+- Preserve German orthography and typography exactly as the article already uses it: umlauts (ä/ö/ü), ß vs. ss, quotation marks („…"), the article's existing Sie/du address, German date order (14. März 2026) and German number formatting (1.234,56).
+- Phrase ages, dates and figures the way German copy phrases them ("45 Jahre alt", "im Jahr 2025", "seit 2019") — never calque an English construction.
+- Any new paragraphs you add must read as native German written by the same author, not as a translation.`;
+
+const LATAM_BLOCK = `DESK: LATAM — the article is written in Spanish (Latin American Spanish).
+
+- The headline and the body are Spanish. Everything you output stays Spanish. Never translate the article, never switch to English, never leave an English sentence, phrase or connector inside the Spanish copy.
+- Run your verification searches in Spanish first, since Spanish-language facts are usually only correct in Spanish-language sources. Search in English as well whenever the subject is international and Spanish coverage is thin, then write the confirmed fact back in Spanish.
+- Keep Latin American Spanish, not Castilian: "ustedes" rather than "vosotros", and the regional vocabulary the article already uses.
+- Preserve Spanish orthography and typography exactly: accents (á é í ó ú ñ), opening ¿ and ¡, Spanish date order (14 de marzo de 2026) and Spanish number formatting (1.234,56).
+- Phrase ages, dates and figures the way Spanish copy phrases them ("de 45 años", "en 2025", "desde 2019") — never calque an English construction.
+- Any new paragraphs you add must read as native Spanish written by the same author, not as a translation.`;
+
+const LOCALES = {
+  us: {
+    id: 'us',
+    label: 'USA',
+    language: 'English',
+    block: null,
+    userLocation: null,
+    meta: 'Article language <strong>English</strong> · verification searches in <strong>English</strong>'
+  },
+  de: {
+    id: 'de',
+    label: 'Germany',
+    language: 'German',
+    block: DE_BLOCK,
+    userLocation: { type: 'approximate', country: 'DE', timezone: 'Europe/Berlin' },
+    meta: 'Article language <strong>German</strong> · verification searches in <strong>German first, English as backup</strong> · output stays German'
+  },
+  latam: {
+    id: 'latam',
+    label: 'LatAm',
+    language: 'Spanish',
+    block: LATAM_BLOCK,
+    userLocation: { type: 'approximate', country: 'MX', timezone: 'America/Mexico_City' },
+    meta: 'Article language <strong>Spanish (LatAm)</strong> · verification searches in <strong>Spanish first, English as backup</strong> · output stays Spanish'
+  }
+};
+
+function buildPrompt(loc){
+  if(!loc.block) return DEFAULT_PROMPT;
+  return DEFAULT_PROMPT.replace(PROMPT_ANCHOR, loc.block + "\n\n" + PROMPT_ANCHOR);
+}
+
+let currentLocale = 'us';
+try {
+  const saved = localStorage.getItem('ud_locale');
+  if(saved && LOCALES[saved]) currentLocale = saved;
+} catch(e){}
+
+/* per-desk prompt overrides, session only (same as before: not persisted) */
+const promptOverrides = { us: null, de: null, latam: null };
+
+function activePromptFor(id){
+  return promptOverrides[id] || buildPrompt(LOCALES[id]);
+}
+
+function setLocale(id){
+  if(!LOCALES[id]) return;
+  /* keep whatever is currently typed in the editor for the desk we are leaving */
+  const area = document.getElementById('promptEditorArea');
+  if(area && area.value && area.value !== activePromptFor(currentLocale)){
+    /* unsaved edits are dropped on switch, same as a reload — nothing to do */
+  }
+  currentLocale = id;
+  try { localStorage.setItem('ud_locale', id); } catch(e){}
+  document.querySelectorAll('.loc-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.locale === id);
+  });
+  document.getElementById('localeMeta').innerHTML = LOCALES[id].meta;
+  document.getElementById('promptEditorLocale').textContent = LOCALES[id].label;
+  area.value = activePromptFor(id);
+}
 
 function toggleEditor(){
   const wrap = document.getElementById('promptEditorWrap');
@@ -188,12 +297,12 @@ function toggleEditor(){
   btn.classList.toggle('active');
 }
 function resetPrompt(){
-  document.getElementById('promptEditorArea').value = DEFAULT_PROMPT;
-  activePrompt = DEFAULT_PROMPT;
+  promptOverrides[currentLocale] = null;
+  document.getElementById('promptEditorArea').value = buildPrompt(LOCALES[currentLocale]);
   flashSaved();
 }
 function savePrompt(){
-  activePrompt = document.getElementById('promptEditorArea').value;
+  promptOverrides[currentLocale] = document.getElementById('promptEditorArea').value;
   flashSaved();
 }
 function flashSaved(){
@@ -209,18 +318,39 @@ function plainText(html){
   return doc.body.textContent.trim();
 }
 
-async function callClaudeOnce(messages){
-  const resp = await fetch("/api/chat", {
+let dropUserLocation = false; // set if the search API ever rejects the locale hint
+
+function buildPayload(messages, withLocation){
+  const loc = LOCALES[currentLocale];
+  const searchTool = { type: "web_search_20250305", name: "web_search" };
+  if(withLocation && loc.userLocation) searchTool.user_location = loc.userLocation;
+  return {
+    model: "claude-sonnet-4-6",
+    max_tokens: 16000,
+    system: activePromptFor(currentLocale),
+    messages,
+    tools: [searchTool]
+  };
+}
+
+async function post(payload){
+  return fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 16000,
-      system: activePrompt,
-      messages,
-      tools: [{ type: "web_search_20250305", name: "web_search" }]
-    })
+    body: JSON.stringify(payload)
   });
+}
+
+async function callClaudeOnce(messages){
+  const wantsLocation = !dropUserLocation && !!LOCALES[currentLocale].userLocation;
+  let resp = await post(buildPayload(messages, wantsLocation));
+
+  // If the regional search hint is ever rejected, fall back once and remember it.
+  if(!resp.ok && resp.status === 400 && wantsLocation){
+    dropUserLocation = true;
+    resp = await post(buildPayload(messages, false));
+  }
+
   if(!resp.ok){ throw new Error("API error: " + resp.status); }
   return resp.json();
 }
@@ -297,7 +427,7 @@ async function runUpdate(){
 
   btn.disabled = true;
   document.getElementById('output').style.display = 'none';
-  setStatus("Checking facts against live search — this can take a minute…");
+  setStatus(`Checking facts against live ${LOCALES[currentLocale].language} search — this can take a minute…`);
 
   try{
     const raw = await callClaude(headlineHtml, bodyHtml, infoHtml, (attemptNum) => {
@@ -357,6 +487,8 @@ function resetTool(){
   document.getElementById('output').style.display = 'none';
   setStatus('');
 }
+
+setLocale(currentLocale);
 </script>
 </body>
 </html>
