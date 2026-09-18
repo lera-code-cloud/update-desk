@@ -15,23 +15,7 @@ header { background: #1a1a1a; border-bottom: 0.5px solid #2e2e2e; padding: 18px 
 .logo span { font-size: 11px; font-weight: 700; color: #121212; letter-spacing: .02em; }
 .header-left h1 { font-size: 16px; font-weight: 500; color: #e8e0d8; }
 .header-left .tagline { font-size: 12px; color: #6b6560; margin-left: 4px; }
-.settings-btn { background: none; border: 0.5px solid #2e2e2e; border-radius: 8px; padding: 7px 16px; font-size: 12px; font-family: inherit; color: #6b6560; cursor: pointer; letter-spacing: .04em; transition: border-color .2s, color .2s; }
-.settings-btn:hover, .settings-btn.active { border-color: #c8b89a; color: #c8b89a; }
-
 .container { max-width: 820px; margin: 0 auto; padding: 32px 24px 80px; }
-
-.prompt-editor { display: none; background: #1a1a1a; border: 0.5px solid #2e2e2e; border-radius: 16px; padding: 24px 28px; margin-bottom: 20px; }
-.prompt-editor.open { display: block; }
-.editor-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.editor-label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #6b6560; display: flex; align-items: center; gap: 8px; }
-.saved-badge { display: none; font-size: 11px; color: #7ab060; border: 0.5px solid #7ab060; border-radius: 6px; padding: 1px 8px; }
-.saved-badge.show { display: inline-block; }
-.editor-actions { display: flex; gap: 8px; }
-.pill-btn { background: none; border: 0.5px solid #2e2e2e; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-family: inherit; color: #9a8f85; cursor: pointer; transition: all .2s; }
-.pill-btn:hover { border-color: #c8b89a; color: #e8e0d8; }
-.pill-btn.save:hover { border-color: #7ab060; color: #7ab060; }
-.prompt-editor textarea { width: 100%; min-height: 260px; background: #141414; border: 0.5px solid #2e2e2e; border-radius: 10px; padding: 14px; color: #d4ccc4; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6; resize: vertical; }
-.editor-hint { font-size: 11px; color: #6b6560; margin-top: 8px; }
 
 .input-card, .result-card { background: #1a1a1a; border: 0.5px solid #2e2e2e; border-radius: 16px; padding: 24px 28px; margin-bottom: 20px; }
 .input-card label, .result-card label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #6b6560; margin-bottom: 10px; }
@@ -55,6 +39,7 @@ header { background: #1a1a1a; border-bottom: 0.5px solid #2e2e2e; padding: 18px 
 #status { font-size: 12px; color: #6b6560; }
 
 .error-bar { background: #1a1a1a; border: 0.5px solid #c87070; color: #c87070; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 20px; display: none; }
+.warn-bar { background: #1a1a1a; border: 0.5px solid #c8a86a; color: #c8a86a; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 20px; display: none; line-height: 1.5; }
 
 #output { display: none; }
 
@@ -71,6 +56,7 @@ header { background: #1a1a1a; border-bottom: 0.5px solid #2e2e2e; padding: 18px 
 .result-body img { max-width: 100%; height: auto; border-radius: 6px; margin: 8px 0; }
 .result-body a { color: #c8b89a; text-decoration: none; border-bottom: 0.5px solid #c8b89a44; }
 .result-body a:hover { border-color: #c8b89a; }
+.result-body iframe { max-width: 100%; border: 0.5px solid #2e2e2e; border-radius: 8px; }
 
 .stamp { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
 .stamp.updated { background: #c8b89a22; color: #c8b89a; border: 0.5px solid #c8b89a; }
@@ -85,13 +71,16 @@ header { background: #1a1a1a; border-bottom: 0.5px solid #2e2e2e; padding: 18px 
 .loc-btn:disabled { opacity: .4; cursor: not-allowed; }
 .locale-meta { font-size: 11px; color: #4a4540; letter-spacing: .02em; margin-top: 12px; }
 .locale-meta strong { color: #6b6560; font-weight: 500; }
+.embed-meta { font-size: 11.5px; color: #6b6560; letter-spacing: .02em; margin-top: 10px; line-height: 1.5; }
+.embed-meta strong { color: #c8b89a; font-weight: 600; }
+.embed-meta.warn { color: #c8a86a; }
 @media (max-width: 720px) {
   header { padding: 14px 16px; flex-wrap: wrap; gap: 12px; }
   .header-left .tagline { display: none; }
   .header-right { width: 100%; justify-content: space-between; }
   .loc-btn { padding: 7px 11px; }
   .container { padding: 22px 14px 60px; }
-  .input-card, .result-card, .prompt-editor { padding: 20px 18px; }
+  .input-card, .result-card { padding: 20px 18px; }
 }
 </style>
 </head>
@@ -109,23 +98,10 @@ header { background: #1a1a1a; border-bottom: 0.5px solid #2e2e2e; padding: 18px 
       <button class="loc-btn" data-locale="de" onclick="setLocale('de')">Germany</button>
       <button class="loc-btn" data-locale="latam" onclick="setLocale('latam')">LatAm</button>
     </div>
-    <button class="settings-btn" id="settingsToggle" onclick="toggleEditor()">Prompt editor</button>
   </div>
 </header>
 
 <div class="container">
-
-  <div class="prompt-editor" id="promptEditorWrap">
-    <div class="editor-header">
-      <div class="editor-label">System prompt · <span id="promptEditorLocale">USA</span> <span class="saved-badge" id="savedBadge">Saved for this session</span></div>
-      <div class="editor-actions">
-        <button class="pill-btn" onclick="resetPrompt()">Reset to default</button>
-        <button class="pill-btn save" onclick="savePrompt()">Save</button>
-      </div>
-    </div>
-    <textarea id="promptEditorArea"></textarea>
-    <div class="editor-hint">Edits apply for this browser tab only — they are not saved once you close or reload the page.</div>
-  </div>
 
   <div class="input-card">
     <label>Add new information <span class="optional-badge">optional</span></label>
@@ -139,8 +115,9 @@ header { background: #1a1a1a; border-bottom: 0.5px solid #2e2e2e; padding: 18px 
 
   <div class="input-card">
     <label>Article body</label>
-    <div class="paste-zone" id="pasteZone" contenteditable="true" data-placeholder="Open the article in the admin, select the whole body (Cmd/Ctrl+A inside the editor), copy, click here, and paste (Cmd/Ctrl+V). Photos and links come along automatically."></div>
-    <div class="hint">Paste directly from the admin editor — not a plain-text version. Formatting, hyperlinks, and images are carried over through the clipboard and are never touched by the tool.</div>
+    <div class="paste-zone" id="pasteZone" contenteditable="true" data-placeholder="Open the article in the admin, select the whole body (Cmd/Ctrl+A inside the editor), copy, click here, and paste (Cmd/Ctrl+V). Photos, links and embeds come along automatically."></div>
+    <div class="hint">Paste directly from the admin editor — not a plain-text version. Formatting, hyperlinks, images and social embeds are carried over through the clipboard and are never touched by the tool.</div>
+    <div class="embed-meta" id="embedMeta"></div>
     <div class="btn-row">
       <button class="gen-btn" id="runBtn" onclick="runUpdate()">Refresh article</button>
       <span id="status"></span>
@@ -149,6 +126,7 @@ header { background: #1a1a1a; border-bottom: 0.5px solid #2e2e2e; padding: 18px 
   </div>
 
   <div class="error-bar" id="errorBar"></div>
+  <div class="warn-bar" id="warnBar"></div>
 
   <div id="output">
 
@@ -162,12 +140,13 @@ header { background: #1a1a1a; border-bottom: 0.5px solid #2e2e2e; padding: 18px 
 
     <div class="result-card">
       <div class="result-toolbar">
-        <span class="section-title">Article body</span>
+        <span class="section-title">Article body <span class="stamp" id="embedStamp"></span></span>
         <button class="tool-btn" id="copyBodyBtn" onclick="copyFormatted('resultContent', 'copyBodyBtn')">Copy formatted</button>
+        <button class="tool-btn" id="copyHtmlBtn" onclick="copySource('resultContent', 'copyHtmlBtn')">Copy HTML</button>
         <button class="tool-btn" onclick="resetTool()">Clear</button>
       </div>
       <div class="result-body" id="resultContent" contenteditable="true"></div>
-      <div class="hint">Click inside, select all (Cmd/Ctrl+A), copy, and paste straight into the admin — or use "Copy formatted" above.</div>
+      <div class="hint">Click inside, select all (Cmd/Ctrl+A), copy, and paste straight into the admin — or use "Copy formatted". If an embed still vanishes on paste, use "Copy HTML" and paste into the admin's source/HTML view instead.</div>
     </div>
 
   </div>
@@ -181,17 +160,26 @@ You receive a headline and an HTML body pasted straight from the CMS editor, opt
 
 STRICT RULES FOR THE BODY:
 1. Never remove, add, or reorder any HTML tags, attributes, classes, href values on links, or src values on images that were already in the input. The existing structure must stay intact.
-2. Only change existing text where a fact is genuinely outdated or inaccurate. Never translate or rephrase for style — keep the original language and voice exactly.
-3. If you cannot confirm or refute a fact via web search, do NOT guess. Leave it as-is.
-4. Also silently apply this checklist wherever it's checkable via search, without reporting on it: current ages of everyone named, relationship/family status, professional roles, relative time phrases ("last year", "recently", "soon") replaced with actual dates, present-tense assumptions updated if resolved, stats/figures (net worth, chart positions, followers, box office) current, timeline internally consistent, spelling/grammar/punctuation clean.
+2. EMBED MARKERS. The body contains markers of the form [[EMBED_1]], [[EMBED_2]] and so on, each alone inside its own paragraph. Each marker stands for a social-media embed (a Facebook, Instagram, X/Twitter, TikTok or YouTube post) that is part of the published article. Reproduce every marker in your output EXACTLY as written, exactly once, in exactly the same position relative to the surrounding paragraphs. Never delete a marker, never renumber them, never duplicate one, never translate one, never describe one in words, and never put any other text inside a marker's paragraph. A lost or altered marker destroys the article layout, so treat the markers as the single most important thing to carry over.
+3. Only change existing text where a fact is genuinely outdated or inaccurate. Never translate or rephrase for style — keep the original language and voice exactly.
+4. If you cannot confirm or refute a fact via web search, do NOT guess. Leave it as-is.
+5. Silently apply this checklist wherever it's checkable via search, without reporting on it: current ages of everyone named, relationship/family status, professional roles, relative time phrases ("last year", "recently", "soon") replaced with actual dates, present-tense assumptions updated if resolved, stats/figures (net worth, chart positions, followers, box office) current, timeline internally consistent, spelling/grammar/punctuation clean.
+
+WHEN YOU MAY ADD NEW TEXT — exactly two cases, nothing else:
+A. The user supplied material under "NEW INFORMATION TO WEAVE IN". Then add 2-3 paragraphs in the most relevant place in the body, in the same language and voice as the rest of the article.
+B. Web search shows that something central to the article has actually changed since publication, so that the article now reads as false. The clearest case is a death: the text speaks about a person as living and that person has died. Other cases of the same kind are a marriage, a divorce or separation, a birth, a publicly announced serious illness, a role or job that has ended, a legal outcome, or a project that has since been released or cancelled. Then correct every passage the change touches (tense, "is" to "was", relative time phrases, present-tense assumptions) and add the minimum new text — normally one short paragraph — stating what happened and when.
+In every other situation add nothing at all. Do not pad the article with extra background, context, reactions, quotes or recent news just because your searches turned them up.
+
+SOURCING — mandatory, no exceptions:
+- Every new statement you add under case A or case B must be sourced with a working hyperlink the reader can click. Use a natural anchor phrase in the article's language, formatted as an <a> tag consistent with the links already in the article.
+- Link each supplied source URL exactly once.
+- For case B, link to the report you actually verified the fact in. Use ONLY URLs that appeared verbatim in your web_search results. Never invent, guess, shorten, reconstruct or recall a URL from memory, and never link to a page you have not actually seen in the search results.
+- Prefer the original and most authoritative report (an official statement from the family, estate or representative, the person's verified account, a major news agency or established outlet) over aggregators and unsourced blogs.
+- If you cannot produce a real, verified source URL for a new fact, do not add that fact at all.
+- Corrections to facts that were already in the article (an age, a net worth figure, a chart position, a date) do not need a link — only newly added statements do.
 
 STRICT RULES FOR THE HEADLINE:
 - Only change the headline if it clearly no longer matches the article after your edits. Otherwise return it completely unchanged.
-
-ADDING NEW INFORMATION (only if the user supplied source material):
-- Insert 2-3 new paragraphs into the most relevant place in the body, in the same language and voice as the rest of the article.
-- You MUST hyperlink to every source URL provided, using a natural anchor phrase (e.g. "<a href="...">a new report</a>"), exactly once per source, formatted as an <a> tag consistent with the other links already in the article.
-- Do not invent facts beyond what the supplied source material states or what you can verify via web search about it.
 
 Use web search to verify every checkable factual claim.
 
@@ -201,7 +189,7 @@ RESPONSE FORMAT — strict, nothing before or after these blocks:
 <<<HEADLINE>>>
 (the headline — updated only if truly necessary, otherwise identical to the input)
 <<<BODY>>>
-(the full updated HTML body)
+(the full updated HTML body, with every [[EMBED_n]] marker still in place)
 <<<END>>>`;
 
 /* ------------------------------------------------------------------
@@ -215,6 +203,8 @@ const DE_BLOCK = `DESK: GERMANY — the article is written in German.
 
 - The headline and the body are German. Everything you output stays German. Never translate the article, never switch to English, never leave an English sentence, phrase or connector inside the German copy.
 - Run your verification searches in German first, since German-language facts are usually only correct in German-language sources. Search in English as well whenever the subject is international and German coverage is thin, then write the confirmed fact back in German.
+- The [[EMBED_n]] markers are machine tokens, not copy. They stay in English exactly as written — never translate, reformat or move them, even though everything around them is German.
+- Search in German first, but LINK in English by preference: the source you hyperlink should be a major, widely trusted English-language publisher (AP, Reuters, BBC, People, Variety, The Hollywood Reporter, Deadline, CNN and similar). Link a German-language source only when the story is purely domestic, or when no credible English-language report covers it. The anchor text is always German, whatever language the linked page is in.
 - Preserve German orthography and typography exactly as the article already uses it: umlauts (ä/ö/ü), ß vs. ss, quotation marks („…"), the article's existing Sie/du address, German date order (14. März 2026) and German number formatting (1.234,56).
 - Phrase ages, dates and figures the way German copy phrases them ("45 Jahre alt", "im Jahr 2025", "seit 2019") — never calque an English construction.
 - Any new paragraphs you add must read as native German written by the same author, not as a translation.`;
@@ -223,6 +213,8 @@ const LATAM_BLOCK = `DESK: LATAM — the article is written in Spanish (Latin Am
 
 - The headline and the body are Spanish. Everything you output stays Spanish. Never translate the article, never switch to English, never leave an English sentence, phrase or connector inside the Spanish copy.
 - Run your verification searches in Spanish first, since Spanish-language facts are usually only correct in Spanish-language sources. Search in English as well whenever the subject is international and Spanish coverage is thin, then write the confirmed fact back in Spanish.
+- The [[EMBED_n]] markers are machine tokens, not copy. They stay in English exactly as written — never translate, reformat or move them, even though everything around them is Spanish.
+- Search in Spanish first, but LINK in English by preference: the source you hyperlink should be a major, widely trusted English-language publisher (AP, Reuters, BBC, People, Variety, The Hollywood Reporter, Deadline, CNN and similar). Link a Spanish-language source only when the story is purely regional, or when no credible English-language report covers it. The anchor text is always Spanish, whatever language the linked page is in.
 - Keep Latin American Spanish, not Castilian: "ustedes" rather than "vosotros", and the regional vocabulary the article already uses.
 - Preserve Spanish orthography and typography exactly: accents (á é í ó ú ñ), opening ¿ and ¡, Spanish date order (14 de marzo de 2026) and Spanish number formatting (1.234,56).
 - Phrase ages, dates and figures the way Spanish copy phrases them ("de 45 años", "en 2025", "desde 2019") — never calque an English construction.
@@ -266,49 +258,18 @@ try {
   if(saved && LOCALES[saved]) currentLocale = saved;
 } catch(e){}
 
-/* per-desk prompt overrides, session only (same as before: not persisted) */
-const promptOverrides = { us: null, de: null, latam: null };
-
 function activePromptFor(id){
-  return promptOverrides[id] || buildPrompt(LOCALES[id]);
+  return buildPrompt(LOCALES[id]);
 }
 
 function setLocale(id){
   if(!LOCALES[id]) return;
-  /* keep whatever is currently typed in the editor for the desk we are leaving */
-  const area = document.getElementById('promptEditorArea');
-  if(area && area.value && area.value !== activePromptFor(currentLocale)){
-    /* unsaved edits are dropped on switch, same as a reload — nothing to do */
-  }
   currentLocale = id;
   try { localStorage.setItem('ud_locale', id); } catch(e){}
   document.querySelectorAll('.loc-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.locale === id);
   });
   document.getElementById('localeMeta').innerHTML = LOCALES[id].meta;
-  document.getElementById('promptEditorLocale').textContent = LOCALES[id].label;
-  area.value = activePromptFor(id);
-}
-
-function toggleEditor(){
-  const wrap = document.getElementById('promptEditorWrap');
-  const btn = document.getElementById('settingsToggle');
-  wrap.classList.toggle('open');
-  btn.classList.toggle('active');
-}
-function resetPrompt(){
-  promptOverrides[currentLocale] = null;
-  document.getElementById('promptEditorArea').value = buildPrompt(LOCALES[currentLocale]);
-  flashSaved();
-}
-function savePrompt(){
-  promptOverrides[currentLocale] = document.getElementById('promptEditorArea').value;
-  flashSaved();
-}
-function flashSaved(){
-  const badge = document.getElementById('savedBadge');
-  badge.classList.add('show');
-  setTimeout(() => badge.classList.remove('show'), 2000);
 }
 
 function setStatus(msg){ document.getElementById('status').textContent = msg; }
@@ -318,6 +279,138 @@ function plainText(html){
   return doc.body.textContent.trim();
 }
 
+/* ==================================================================
+   EMBED SHIELD
+   Social embeds never reach the model. Before the request every embed
+   is lifted out of the HTML and replaced with a [[EMBED_n]] marker;
+   after the response the original markup is dropped back in, byte for
+   byte. Whatever the model does to the text, the embeds survive.
+=================================================================== */
+
+const EMBED_SELECTOR = [
+  'iframe','script','noscript','embed','object','video','audio',
+  'blockquote.twitter-tweet','blockquote.instagram-media','blockquote.tiktok-embed',
+  'blockquote.reddit-card','blockquote.imgur-embed-pub','blockquote[class*="embed"]',
+  '.fb-post','.fb-video','.fb-page','.twitter-tweet','.instagram-media','.tiktok-embed',
+  '[data-instgrm-permalink]','[data-embed]','[data-oembed]','[data-oembed-url]',
+  '[data-media-type]','[data-tweet-id]','[data-video-id]',
+  'figure[class*="embed"]','div[class*="embed"]','div[id^="fb-root"]'
+].join(',');
+
+const WRAPPER_TAGS = new Set(['P','DIV','FIGURE','SPAN','CENTER','SECTION']);
+
+function freshRoot(html){
+  const doc = new DOMParser().parseFromString('<body><div id="ud-root"></div></body>', 'text/html');
+  const root = doc.getElementById('ud-root');
+  root.innerHTML = html || '';
+  return { doc, root };
+}
+
+function isSoleWrapper(parent, child){
+  if(!parent || !WRAPPER_TAGS.has(parent.tagName)) return false;
+  if(parent.children.length !== 1 || parent.children[0] !== child) return false;
+  return parent.textContent.trim() === child.textContent.trim();
+}
+
+function shieldEmbeds(html){
+  const { root } = freshRoot(html);
+
+  // mark the outermost node of every embed
+  Array.from(root.querySelectorAll(EMBED_SELECTOR)).forEach(el => {
+    if(el.closest('[data-ud-embed]')) return;
+    let target = el;
+    while(target.parentElement && target.parentElement !== root && isSoleWrapper(target.parentElement, target)){
+      target = target.parentElement;
+    }
+    if(target === root) return;
+    target.setAttribute('data-ud-embed', '1');
+  });
+
+  const embeds = [];
+  Array.from(root.querySelectorAll('[data-ud-embed]')).forEach((el, idx) => {
+    const n = idx + 1;
+    el.removeAttribute('data-ud-embed');
+
+    let top = el;
+    while(top.parentElement && top.parentElement !== root) top = top.parentElement;
+    const topIndex = Array.from(root.children).indexOf(top);
+
+    embeds.push({ token: '[[EMBED_' + n + ']]', html: el.outerHTML, topIndex: topIndex });
+
+    const marker = root.ownerDocument.createElement('p');
+    marker.textContent = '[[EMBED_' + n + ']]';
+    el.replaceWith(marker);
+  });
+
+  return { html: root.innerHTML, embeds: embeds };
+}
+
+function placeEmbed(doc, root, token, el){
+  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let tn = null;
+  while(walker.nextNode()){
+    if(walker.currentNode.nodeValue.indexOf(token) !== -1){ tn = walker.currentNode; break; }
+  }
+  if(!tn) return false;
+
+  let holder = tn.parentElement;
+  if(holder && holder !== root && holder.textContent.trim() === token){
+    while(holder.parentElement && holder.parentElement !== root && holder.parentElement.textContent.trim() === token){
+      holder = holder.parentElement;
+    }
+    holder.replaceWith(el);
+  } else {
+    const idx = tn.nodeValue.indexOf(token);
+    const after = tn.splitText(idx);
+    after.nodeValue = after.nodeValue.slice(token.length);
+    after.parentNode.insertBefore(el, after);
+  }
+  return true;
+}
+
+function restoreEmbeds(html, embeds){
+  if(!embeds.length) return { html: html, restored: 0, misplaced: 0 };
+  const { doc, root } = freshRoot(html);
+  let misplaced = 0;
+
+  embeds.forEach(e => {
+    const holder = doc.createElement('div');
+    holder.innerHTML = e.html;
+    const el = holder.firstElementChild;
+    if(!el) return;
+
+    if(!placeEmbed(doc, root, e.token, el)){
+      misplaced++;
+      const kids = root.children;
+      const at = Math.min(Math.max(e.topIndex, 0), kids.length);
+      if(at >= kids.length) root.appendChild(el);
+      else root.insertBefore(el, kids[at]);
+    }
+  });
+
+  // sweep any leftover or duplicated markers the model may have produced
+  let out = root.innerHTML.replace(/\[\[EMBED_\d+\]\]/g, '');
+  out = out.replace(/<p>\s*<\/p>/g, '');
+
+  return { html: out, restored: embeds.length, misplaced: misplaced };
+}
+
+function updateEmbedCount(){
+  const html = document.getElementById('pasteZone').innerHTML.trim();
+  const el = document.getElementById('embedMeta');
+  if(!html){ el.textContent = ''; el.classList.remove('warn'); return; }
+  const n = shieldEmbeds(html).embeds.length;
+  if(n){
+    el.classList.remove('warn');
+    el.innerHTML = '<strong>' + n + '</strong> embed' + (n === 1 ? '' : 's') + ' found in what you pasted. They are held back from the model and dropped into the result untouched.';
+  } else {
+    el.classList.add('warn');
+    el.textContent = 'No embeds found in what you pasted. If the article has embeds, the CMS did not put them on the clipboard — copy the article from the admin\u2019s source/HTML view instead.';
+  }
+}
+
+/* ================================================================== */
+
 let dropUserLocation = false; // set if the search API ever rejects the locale hint
 
 function buildPayload(messages, withLocation){
@@ -326,7 +419,7 @@ function buildPayload(messages, withLocation){
   if(withLocation && loc.userLocation) searchTool.user_location = loc.userLocation;
   return {
     model: "claude-sonnet-4-6",
-    max_tokens: 16000,
+    max_tokens: 32000,
     system: activePromptFor(currentLocale),
     messages,
     tools: [searchTool]
@@ -355,9 +448,14 @@ async function callClaudeOnce(messages){
   return resp.json();
 }
 
-async function callClaude(headlineHtml, bodyHtml, infoHtml, onRetry){
+async function callClaude(headlineHtml, shieldedBodyHtml, infoHtml, embedCount, onRetry){
   const today = new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
-  let userMsg = `Today's date: ${today}\n\nHEADLINE:\n${headlineHtml}\n\nBODY HTML:\n${bodyHtml}`;
+  let userMsg = `Today's date: ${today}\n\nHEADLINE:\n${headlineHtml}\n\nBODY HTML:\n${shieldedBodyHtml}`;
+  if(embedCount){
+    userMsg += `\n\nThis body contains ${embedCount} embed marker(s): ` +
+      Array.from({length: embedCount}, (_, i) => `[[EMBED_${i+1}]]`).join(', ') +
+      `. All ${embedCount} must appear in your output, unchanged, once each, in the same position.`;
+  }
   const infoText = plainText(infoHtml || "");
   if(infoText){
     userMsg += `\n\nNEW INFORMATION TO WEAVE IN (link to this/these source(s) exactly once each):\n${infoHtml}`;
@@ -384,7 +482,7 @@ async function callClaude(headlineHtml, bodyHtml, infoHtml, onRetry){
     messages = [
       ...messages,
       { role: "assistant", content: textPart },
-      { role: "user", content: "Continue exactly from where you left off. Do not repeat anything already written, and do not restart the <<<HEADLINE>>> block." }
+      { role: "user", content: "Continue exactly from where you left off. Do not repeat anything already written, and do not restart the <<<HEADLINE>>> block. Keep every [[EMBED_n]] marker that still has to come, exactly as written." }
     ];
   }
 
@@ -418,19 +516,23 @@ async function runUpdate(){
 
   const btn = document.getElementById('runBtn');
   const errorBar = document.getElementById('errorBar');
+  const warnBar = document.getElementById('warnBar');
   errorBar.style.display = 'none';
+  warnBar.style.display = 'none';
 
   if(!bodyHtml){
     setStatus("Paste the article body first.");
     return;
   }
 
+  const shield = shieldEmbeds(bodyHtml);
+
   btn.disabled = true;
   document.getElementById('output').style.display = 'none';
   setStatus(`Checking facts against live ${LOCALES[currentLocale].language} search — this can take a minute…`);
 
   try{
-    const raw = await callClaude(headlineHtml, bodyHtml, infoHtml, (attemptNum) => {
+    const raw = await callClaude(headlineHtml, shield.html, infoHtml, shield.embeds.length, (attemptNum) => {
       setStatus(`Response was cut off — asking Claude to continue (attempt ${attemptNum})…`);
     });
     const { headlineOut, bodyOut } = parseResponse(raw);
@@ -441,7 +543,22 @@ async function runUpdate(){
     stamp.className = "stamp " + (headlineChanged ? "updated" : "unchanged");
     document.getElementById('headlineResult').innerHTML = headlineOut;
 
-    document.getElementById('resultContent').innerHTML = bodyOut;
+    const restored = restoreEmbeds(bodyOut, shield.embeds);
+    document.getElementById('resultContent').innerHTML = restored.html;
+
+    const embedStamp = document.getElementById('embedStamp');
+    if(!shield.embeds.length){
+      embedStamp.textContent = "";
+      embedStamp.className = "stamp";
+    } else if(restored.misplaced){
+      embedStamp.textContent = restored.restored + " embeds back · " + restored.misplaced + " repositioned";
+      embedStamp.className = "stamp retry";
+      warnBar.style.display = 'block';
+      warnBar.textContent = restored.misplaced + " embed(s) lost their place in the returned text and were put back at their original position in the article. Check where they sit before publishing — nothing was deleted.";
+    } else {
+      embedStamp.textContent = restored.restored + " embeds preserved";
+      embedStamp.className = "stamp unchanged";
+    }
 
     document.getElementById('output').style.display = 'block';
     setStatus("Done. Review below, then copy back into the admin.");
@@ -452,6 +569,14 @@ async function runUpdate(){
   }finally{
     btn.disabled = false;
   }
+}
+
+function flashCopied(btn){
+  const original = btn.dataset.label || btn.textContent;
+  btn.dataset.label = original;
+  btn.classList.add('copied');
+  btn.textContent = 'Copied';
+  setTimeout(() => { btn.classList.remove('copied'); btn.textContent = original; }, 2000);
 }
 
 async function copyFormatted(nodeId, btnId){
@@ -474,10 +599,26 @@ async function copyFormatted(nodeId, btnId){
     document.execCommand('copy');
     sel.removeAllRanges();
   }
-  const original = btn.textContent;
-  btn.classList.add('copied');
-  btn.textContent = 'Copied';
-  setTimeout(() => { btn.classList.remove('copied'); btn.textContent = original; }, 2000);
+  flashCopied(btn);
+}
+
+async function copySource(nodeId, btnId){
+  const node = document.getElementById(nodeId);
+  const btn = document.getElementById(btnId);
+  const html = node.innerHTML;
+  try{
+    await navigator.clipboard.writeText(html);
+  }catch(err){
+    const ta = document.createElement('textarea');
+    ta.value = html;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+  flashCopied(btn);
 }
 
 function resetTool(){
@@ -485,8 +626,13 @@ function resetTool(){
   document.getElementById('headlineZone').innerHTML = '';
   document.getElementById('infoZone').innerHTML = '';
   document.getElementById('output').style.display = 'none';
+  document.getElementById('warnBar').style.display = 'none';
+  document.getElementById('embedMeta').textContent = '';
   setStatus('');
 }
+
+document.getElementById('pasteZone').addEventListener('input', updateEmbedCount);
+document.getElementById('pasteZone').addEventListener('paste', () => setTimeout(updateEmbedCount, 0));
 
 setLocale(currentLocale);
 </script>
